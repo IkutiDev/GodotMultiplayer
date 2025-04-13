@@ -20,14 +20,20 @@ var is_walking : bool
 var is_double_jumping : bool
 var jump_count : int = 0
 var camera_instance
-
-func _ready() -> void:
-	set_up_camera()	
+var owner_id := 1
+func _enter_tree() -> void:
+	owner_id = name.to_int()
+	set_multiplayer_authority(owner_id)
+	if owner_id != multiplayer.get_unique_id():
+		return
+	set_up_camera()
 	player_sprite.animation_finished.connect(_on_animation_finished)
 
 func _exit_tree() -> void:
 	player_sprite.animation_finished.disconnect(_on_animation_finished)
 func _physics_process(_delta: float) -> void:
+	if owner_id != multiplayer.get_unique_id():
+		return
 	var horizontal_input = (Input.get_action_strength("move_right")
 	 - Input.get_action_strength("move_left"))
 	
@@ -69,6 +75,10 @@ func face_movement_direction(horizontal_input : float) -> void:
 			player_sprite.scale = initial_sprite_scale
 
 func _process(_delta: float) -> void:
+	if multiplayer.multiplayer_peer == null:
+		return
+	if owner_id != multiplayer.get_unique_id():
+		return
 	update_cmaera_pos()
 	update_animation()
 
