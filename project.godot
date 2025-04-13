@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Godot 4 Multiplayer"
-run/main_scene="uid://wqsid43t70ak"
+run/main_scene="uid://mwutlmgiwbgw"
 config/features=PackedStringArray("4.4")
 config/icon="res://icon.svg"
 
