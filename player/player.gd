@@ -12,15 +12,20 @@ extends CharacterBody2D
 
 @onready var initial_sprite_scale = player_sprite.scale
 
-var is_falling : bool
-var is_jumping : bool
-var is_jump_cancelled : bool
-var is_idle : bool
-var is_walking : bool
-var is_double_jumping : bool
 var jump_count : int = 0
 var camera_instance
 var owner_id := 1
+var state = PlayerState.IDLE
+
+enum PlayerState {
+	IDLE,
+	WALKING,
+	JUMP_STARTED,
+	JUMPING,
+	DOUBLE_JUMPING,
+	FALLING
+}
+
 func _enter_tree() -> void:
 	owner_id = name.to_int()
 	set_multiplayer_authority(owner_id)
@@ -40,32 +45,29 @@ func _physics_process(_delta: float) -> void:
 	velocity.x  = horizontal_input * movement_speed
 	velocity.y += gravity
 	handle_movement_state()
-	
-	handle_jumping()
 		
 	move_and_slide()
 	face_movement_direction(horizontal_input)
 
 func handle_movement_state() -> void:
-	is_falling = velocity.y > 0.0 and not is_on_floor()
-	is_jumping = Input.is_action_just_pressed("jump") and is_on_floor()
-	is_jump_cancelled = Input.is_action_just_released("jump") and velocity.y < 0.0
-	is_idle = is_zero_approx(velocity.x) and is_on_floor()
-	is_walking = not is_zero_approx(velocity.x) and is_on_floor()
-	is_double_jumping = Input.is_action_just_pressed("jump") and is_falling
-
-func handle_jumping() -> void:
-	if is_jumping:
-		velocity.y = -jump_strength
-		jump_count += 1
-	elif is_double_jumping:
-		jump_count += 1
-		if jump_count <= max_jumps:
-			velocity.y = -jump_strength
-	elif is_jump_cancelled:
+	# Decide State
+	if Input.is_action_just_pressed("jump") and is_on_floor():
+		state = PlayerState.JUMP_STARTED
+	elif is_zero_approx(velocity.x) and is_on_floor():
+		state = PlayerState.IDLE
+	elif not is_zero_approx(velocity.x) and is_on_floor():
+		state = PlayerState.WALKING
+	else:
+		state = PlayerState.JUMPING
+		
+	if velocity.y > 0.0 and not is_on_floor():
+		if Input.is_action_just_pressed("jump"):
+			state = PlayerState.DOUBLE_JUMPING 
+		else:
+			state = PlayerState.FALLING
+			
+	if Input.is_action_just_released("jump") and velocity.y < 0.0:
 		velocity.y = 0
-	elif is_on_floor():
-		jump_count = 0
 
 func face_movement_direction(horizontal_input : float) -> void:
 	if not is_zero_approx(horizontal_input):
@@ -80,22 +82,34 @@ func _process(_delta: float) -> void:
 	if owner_id != multiplayer.get_unique_id():
 		return
 	update_cmaera_pos()
-	update_animation()
+	update_animation_and_jump_state()
 
 func _on_animation_finished() -> void:
-	player_sprite.play("jump")
+	if state == PlayerState.JUMPING:
+		player_sprite.play("jump")
 
-func update_animation() -> void:
-	if is_jumping:
-		player_sprite.play("jump_start")
-	elif is_double_jumping:
-		player_sprite.play("double_jump_start")
-	elif is_walking:
-		player_sprite.play("walk")
-	elif is_falling:
-		player_sprite.play("fall")
-	elif is_idle:
-		player_sprite.play("idle")
+func update_animation_and_jump_state() -> void:
+	
+	match state:
+		PlayerState.IDLE:
+			player_sprite.play("idle")
+			jump_count = 0
+		PlayerState.WALKING:
+			player_sprite.play("walk")
+			jump_count = 0
+		PlayerState.JUMP_STARTED:
+			player_sprite.play("jump_start")
+			velocity.y = -jump_strength
+			jump_count += 1
+		PlayerState.JUMPING:
+			pass
+		PlayerState.DOUBLE_JUMPING:
+			player_sprite.play("double_jump_start")
+			jump_count += 1
+			if jump_count <= max_jumps:
+				velocity.y = -jump_strength
+		PlayerState.FALLING:
+			player_sprite.play("fall")
 
 func set_up_camera() -> void:
 	camera_instance = player_camera.instantiate()
