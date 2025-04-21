@@ -2,6 +2,9 @@ extends CharacterBody2D
 
 @export var player_camera : PackedScene
 @export var player_sprite : AnimatedSprite2D
+@export var player_finder : Node2D
+
+@export var target_position : Vector2 = Vector2.INF
 
 @export var camera_height : float = 0.0
 
@@ -55,6 +58,7 @@ func _physics_process(_delta: float) -> void:
 	handle_movement_state()
 		
 	move_and_slide()
+	target_position = global_position
 	face_movement_direction(horizontal_input)
 	for i in get_slide_collision_count():
 		var collision = get_slide_collision(i)
@@ -93,10 +97,11 @@ func face_movement_direction(horizontal_input : float) -> void:
 		else:
 			player_sprite.scale = initial_sprite_scale
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
 	if multiplayer.multiplayer_peer == null:
 		return
 	if owner_id != multiplayer.get_unique_id():
+		global_position = HelperFunctions.ClientInterpolate(global_position, target_position, delta)
 		return
 	update_cmaera_pos()
 	update_animation_and_jump_state()
@@ -131,7 +136,7 @@ func update_animation_and_jump_state() -> void:
 func set_up_camera() -> void:
 	camera_instance = player_camera.instantiate()
 	camera_instance.global_position.y = camera_height
-	get_tree().current_scene.add_child.call_deferred(camera_instance)
+	get_parent().add_child.call_deferred(camera_instance)
 
 func update_cmaera_pos() -> void:
 	camera_instance.global_position.x = global_position.x
@@ -144,3 +149,11 @@ func _on_interaction_area_2d_area_entered(area: Area2D) -> void:
 func _on_interaction_area_2d_area_exited(area: Area2D) -> void:
 	if current_interactable == area:
 		current_interactable = null
+
+
+func _on_visible_on_screen_notifier_2d_screen_entered() -> void:
+	player_finder.hide()
+
+
+func _on_visible_on_screen_notifier_2d_screen_exited() -> void:
+	player_finder.show()
