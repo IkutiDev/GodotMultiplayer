@@ -10,12 +10,15 @@ extends CharacterBody2D
 @export var jump_strength = 600
 @export var max_jumps := 1
 
+@export var push_force := 10
+
 @onready var initial_sprite_scale = player_sprite.scale
 
 var jump_count : int = 0
 var camera_instance
 var owner_id := 1
 var state = PlayerState.IDLE
+var current_interactable = null
 
 enum PlayerState {
 	IDLE,
@@ -44,10 +47,24 @@ func _physics_process(_delta: float) -> void:
 	
 	velocity.x  = horizontal_input * movement_speed
 	velocity.y += gravity
+	
+	if Input.is_action_just_pressed("interact"):
+		if current_interactable != null:
+			current_interactable.interact.rpc_id(1)
+	
 	handle_movement_state()
 		
 	move_and_slide()
 	face_movement_direction(horizontal_input)
+	for i in get_slide_collision_count():
+		var collision = get_slide_collision(i)
+		var pushable = collision.get_collider() as PushableObject
+		if pushable == null:
+			return
+		var point = collision.get_position() - pushable.global_position
+		pushable.push(-collision.get_normal() * push_force, collision.get_position())
+	
+	
 
 func handle_movement_state() -> void:
 	# Decide State
@@ -118,3 +135,12 @@ func set_up_camera() -> void:
 
 func update_cmaera_pos() -> void:
 	camera_instance.global_position.x = global_position.x
+
+
+func _on_interaction_area_2d_area_entered(area: Area2D) -> void:
+	current_interactable = area
+
+
+func _on_interaction_area_2d_area_exited(area: Area2D) -> void:
+	if current_interactable == area:
+		current_interactable = null

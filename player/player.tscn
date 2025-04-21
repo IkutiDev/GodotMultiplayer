@@ -1,4 +1,4 @@
-[gd_scene load_steps=72 format=3 uid="uid://bexcnmqrxxaq1"]
+[gd_scene load_steps=73 format=3 uid="uid://bexcnmqrxxaq1"]
 
 [ext_resource type="Script" uid="uid://ghstrg3xyj21" path="res://player/player.gd" id="1_hggc2"]
 [ext_resource type="Texture2D" uid="uid://cln1ubxiy43oh" path="res://art/characters/elf/double_jump_start/0_Dark_Elves_Double Jump_000.png" id="1_ob4mi"]
@@ -303,6 +303,9 @@ animations = [{
 "speed": 24.0
 }]
 
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_b2j0d"]
+size = Vector2(200, 500)
+
 [sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_b2j0d"]
 properties/0/path = NodePath(".:position")
 properties/0/spawn = true
@@ -316,11 +319,12 @@ properties/2/replication_mode = 1
 
 [node name="Player" type="CharacterBody2D" node_paths=PackedStringArray("player_sprite")]
 collision_layer = 4
-collision_mask = 2
+collision_mask = 38
 script = ExtResource("1_hggc2")
 player_camera = ExtResource("2_b2j0d")
 player_sprite = NodePath("AnimatedSprite2D")
 max_jumps = 2
+push_force = 25
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 position = Vector2(0, -26)
@@ -335,5 +339,17 @@ animation = &"fall"
 autoplay = "idle"
 metadata/_edit_lock_ = true
 
+[node name="InteractionArea2D" type="Area2D" parent="AnimatedSprite2D"]
+collision_layer = 0
+collision_mask = 8
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="AnimatedSprite2D/InteractionArea2D"]
+position = Vector2(300, 45)
+scale = Vector2(1, 1)
+shape = SubResource("RectangleShape2D_b2j0d")
+
 [node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
 replication_config = SubResource("SceneReplicationConfig_b2j0d")
+
+[connection signal="area_entered" from="AnimatedSprite2D/InteractionArea2D" to="." method="_on_interaction_area_2d_area_entered"]
+[connection signal="area_exited" from="AnimatedSprite2D/InteractionArea2D" to="." method="_on_interaction_area_2d_area_exited"]

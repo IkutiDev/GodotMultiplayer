@@ -1,0 +1,64 @@
+[gd_scene load_steps=9 format=3 uid="uid://mlxakbkkucc3"]
+
+[ext_resource type="Texture2D" uid="uid://bb74mmf3rdg4r" path="res://art/objects/Chest_01_Locked.png" id="1_or81j"]
+[ext_resource type="Script" uid="uid://jhln1r8exqts" path="res://interactables/chest/chest.gd" id="1_pmapc"]
+[ext_resource type="PackedScene" uid="uid://bekppc0ba8uly" path="res://interactables/key_door/key.tscn" id="2_1cndp"]
+[ext_resource type="Texture2D" uid="uid://ctvthkqtgqmgm" path="res://art/objects/Chest_01_Unlocked.png" id="2_2bxje"]
+[ext_resource type="PackedScene" uid="uid://c4w5srwab5tep" path="res://interactables/interactable.tscn" id="4_rh8pd"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_rh8pd"]
+radius = 40.0
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_2bxje"]
+size = Vector2(51, 42)
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_2bxje"]
+properties/0/path = NodePath(".:is_locked")
+properties/0/spawn = true
+properties/0/replication_mode = 2
+
+[node name="Chest" type="Node2D" node_paths=PackedStringArray("key_spawn", "chest_locked", "chest_unlocked")]
+script = ExtResource("1_pmapc")
+key_scene = ExtResource("2_1cndp")
+key_spawn = NodePath("KeySpawn")
+chest_locked = NodePath("ChestLocked")
+chest_unlocked = NodePath("ChestUnlocked")
+
+[node name="ChestLocked" type="Sprite2D" parent="."]
+position = Vector2(0, -29)
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("1_or81j")
+
+[node name="ChestUnlocked" type="Sprite2D" parent="."]
+visible = false
+position = Vector2(0, -29)
+scale = Vector2(0.5, 0.5)
+texture = ExtResource("2_2bxje")
+
+[node name="Interactable" parent="." instance=ExtResource("4_rh8pd")]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Interactable"]
+position = Vector2(0, -20)
+shape = SubResource("CircleShape2D_rh8pd")
+
+[node name="StaticBody2D" type="StaticBody2D" parent="."]
+collision_layer = 2
+collision_mask = 0
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="StaticBody2D"]
+position = Vector2(-2.5, -21)
+shape = SubResource("RectangleShape2D_2bxje")
+
+[node name="KeySpawn" type="Node2D" parent="."]
+position = Vector2(0, -20)
+
+[node name="MultiplayerSynchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_2bxje")
+
+[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("uid://bekppc0ba8uly")
+spawn_path = NodePath("../KeySpawn")
+spawn_limit = 1
+
+[connection signal="interacted" from="Interactable" to="." method="_on_interactable_interacted"]
+[connection signal="delta_synchronized" from="MultiplayerSynchronizer" to="." method="_on_multiplayer_synchronizer_delta_synchronized"]
